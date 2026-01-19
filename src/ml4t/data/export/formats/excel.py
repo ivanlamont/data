@@ -22,7 +22,7 @@ try:
     EXCEL_ENGINE = "xlsxwriter"
 except ImportError:
     try:
-        import openpyxl
+        import openpyxl  # type: ignore[import-unresolved]
 
         EXCEL_ENGINE = "openpyxl"
     except ImportError:
@@ -250,7 +250,7 @@ class ExcelExporter(BaseExporter):
         """
         # Since polars doesn't have ExcelWriter, use openpyxl directly
         try:
-            from openpyxl import Workbook
+            from openpyxl import Workbook  # type: ignore[import-unresolved]
 
             wb = Workbook()
             # Remove default sheet

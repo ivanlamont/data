@@ -255,7 +255,7 @@ class LearnedSyntheticProvider(BaseProvider):
         """
         # Import torch lazily to avoid dependency if not using checkpoints
         try:
-            import torch
+            import torch  # type: ignore[import-unresolved]
         except ImportError:
             raise ImportError(
                 "PyTorch is required to load model checkpoints. Install it with: pip install torch"

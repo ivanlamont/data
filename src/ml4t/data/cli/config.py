@@ -134,7 +134,7 @@ def server(host, port, reload):
         console.print("[yellow]Auto-reload enabled (development mode)[/yellow]")
 
     try:
-        from ml4t.data.api.main import run_server
+        from ml4t.data.api.main import run_server  # type: ignore[import-not-found]
 
         run_server(host=host, port=port, reload=reload)
 

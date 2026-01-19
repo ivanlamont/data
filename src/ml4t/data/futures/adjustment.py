@@ -236,13 +236,13 @@ class NoAdjustment(AdjustmentMethod):
     Useful for understanding roll impact and actual trading prices.
     """
 
-    def adjust(self, data: pl.DataFrame, _roll_dates: list[date]) -> pl.DataFrame:
+    def adjust(self, data: pl.DataFrame, roll_dates: list[date]) -> pl.DataFrame:  # noqa: ARG002
         """
         No adjustment - pass through original prices.
 
         Args:
             data: Unadjusted continuous data
-            _roll_dates: Dates when rolls occur (ignored)
+            roll_dates: Dates when rolls occur (ignored)
 
         Returns:
             DataFrame with adjusted_* columns equal to original prices

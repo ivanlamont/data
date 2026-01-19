@@ -79,7 +79,7 @@ class SyntheticRegistry:
         """Initialize the registry."""
         if data_dir is None:
             # Import here to avoid circular imports
-            from ml4t_code import DATA_DIR
+            from ml4t_code import DATA_DIR  # type: ignore[import-not-found]
 
             data_dir = DATA_DIR
 
