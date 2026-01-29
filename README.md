@@ -616,7 +616,7 @@ trades = client.timeseries.get_range(
 - 🛡️ **Production-Ready**: Circuit breakers, rate limiting, automatic retries
 - 💾 **Smart Storage**: Hive-partitioned Parquet with metadata tracking
 - 🔍 **Data Quality**: Automatic validation of OHLC invariants and deduplication
-- 🎯 **Type-Safe**: Full type hints, mypy strict mode
+- 🎯 **Type-Safe**: Full type hints, ty type checker
 - 📚 **Well-Documented**: Step-by-step guides, examples, and templates
 
 ## Choose Your Provider

@@ -41,6 +41,12 @@ from ml4t.data.futures.databento_parser import (
     parse_databento,
     parse_databento_raw,
 )
+from ml4t.data.futures.continuous_downloader import (
+    ContinuousDownloadConfig,
+    ContinuousDownloader,
+    ContinuousDownloadProgress,
+    load_continuous_config,
+)
 from ml4t.data.futures.downloader import (
     DEFAULT_PRODUCTS,
     DefinitionsConfig,
@@ -117,13 +123,18 @@ __all__ = [
     # Continuous contract builder
     "ContinuousContractBuilder",
     "build_continuous_contract",
-    # Downloader
+    # Downloader (individual contracts)
     "FuturesDownloader",
     "FuturesDownloadConfig",
     "FuturesCategory",
     "DownloadProgress",
     "DEFAULT_PRODUCTS",
     "load_yaml_config",
+    # Continuous contract downloader
+    "ContinuousDownloader",
+    "ContinuousDownloadConfig",
+    "ContinuousDownloadProgress",
+    "load_continuous_config",
     # Definitions downloader
     "DefinitionsDownloader",
     "DefinitionsConfig",
