@@ -457,3 +457,77 @@ class TestETFDataManagerIntegration:
         spy_data = manager.load_ohlcv("SPY")
         assert len(spy_data) == 2
         assert spy_data["open"][0] == 100.0
+
+
+class TestETFDataManagerProfile:
+    """Tests for ProfileMixin integration in ETFDataManager."""
+
+    @pytest.fixture
+    def temp_storage(self):
+        """Create temporary storage directory."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            yield Path(tmpdir)
+
+    @pytest.fixture
+    def manager_with_data(self, temp_storage):
+        """Create manager with test data."""
+        config = ETFConfig(
+            storage_path=temp_storage,
+            tickers={"test": {"symbols": ["SPY", "QQQ"]}},
+        )
+        manager = ETFDataManager(config)
+
+        # Create test data
+        data = pl.DataFrame(
+            {
+                "timestamp": [datetime(2024, 1, 1), datetime(2024, 1, 2)],
+                "symbol": ["SPY", "QQQ"],
+                "open": [100.0, 200.0],
+                "high": [102.0, 202.0],
+                "low": [99.0, 199.0],
+                "close": [101.0, 201.0],
+                "volume": [1000.0, 2000.0],
+            }
+        )
+        manager._save_combined(data)
+        return manager
+
+    def test_generate_profile(self, manager_with_data, temp_storage):
+        """Test generate_profile creates profile with statistics."""
+        profile = manager_with_data.generate_profile()
+
+        assert profile.total_rows == 2
+        assert profile.total_columns == 7
+        assert profile.source == "ETFDataManager"
+
+        # Check profile file was created
+        assert (temp_storage / "etf_universe_profile.json").exists()
+
+    def test_load_profile(self, manager_with_data):
+        """Test load_profile returns saved profile."""
+        # Generate first
+        original = manager_with_data.generate_profile()
+
+        # Load
+        loaded = manager_with_data.load_profile()
+
+        assert loaded is not None
+        assert loaded.total_rows == original.total_rows
+        assert loaded.source == original.source
+
+    def test_load_profile_not_exists(self, temp_storage):
+        """Test load_profile returns None when no profile exists."""
+        config = ETFConfig(storage_path=temp_storage)
+        manager = ETFDataManager(config)
+
+        result = manager.load_profile()
+        assert result is None
+
+    def test_generate_profile_empty_data(self, temp_storage):
+        """Test generate_profile handles empty data gracefully."""
+        config = ETFConfig(storage_path=temp_storage)
+        manager = ETFDataManager(config)
+
+        profile = manager.generate_profile()
+        assert profile.total_rows == 0
+        assert profile.total_columns == 0

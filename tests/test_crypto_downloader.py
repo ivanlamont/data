@@ -183,7 +183,7 @@ crypto:
         )
 
         mock_provider = MagicMock()
-        mock_provider.fetch_premium_index_multi.return_value = mock_data
+        mock_provider.fetch_premium_index_multi_parallel.return_value = mock_data
 
         with patch.object(manager, "_provider", mock_provider):
             manager._provider = mock_provider
@@ -201,7 +201,7 @@ crypto:
         manager.config.symbols = {}
 
         mock_provider = MagicMock()
-        mock_provider.fetch_premium_index_multi.return_value = pl.DataFrame(
+        mock_provider.fetch_premium_index_multi_parallel.return_value = pl.DataFrame(
             {
                 "timestamp": [datetime(2024, 1, 1)],
                 "symbol": ["BTCUSDT"],
@@ -216,7 +216,7 @@ crypto:
             manager.download_premium_index()
 
             # Should be called with default symbols
-            call_args = mock_provider.fetch_premium_index_multi.call_args
+            call_args = mock_provider.fetch_premium_index_multi_parallel.call_args
             assert "BTCUSDT" in call_args.kwargs.get("symbols", []) or "BTCUSDT" in call_args[
                 1
             ].get("symbols", [])
@@ -424,3 +424,72 @@ class TestCryptoDataManagerIntegration:
         loaded = manager.load_premium_index(symbols=["BTCUSDT", "ETHUSDT"])
         assert len(loaded) == 2
         assert set(loaded["symbol"].to_list()) == {"BTCUSDT", "ETHUSDT"}
+
+
+class TestCryptoDataManagerProfile:
+    """Tests for ProfileMixin integration in CryptoDataManager."""
+
+    @pytest.fixture
+    def temp_storage(self):
+        """Create temporary storage directory."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            yield Path(tmpdir)
+
+    @pytest.fixture
+    def manager_with_data(self, temp_storage):
+        """Create manager with test data."""
+        config = CryptoConfig(storage_path=temp_storage)
+        manager = CryptoDataManager(config)
+
+        # Create test data
+        data = pl.DataFrame(
+            {
+                "timestamp": [datetime(2024, 1, 1), datetime(2024, 1, 2)],
+                "symbol": ["BTCUSDT", "ETHUSDT"],
+                "premium_index": [0.001, 0.002],
+                "close": [42000.0, 2200.0],
+                "volume": [1000.0, 500.0],
+            }
+        )
+        manager._save_premium_index(data)
+        return manager
+
+    def test_generate_profile(self, manager_with_data, temp_storage):
+        """Test generate_profile creates profile with statistics."""
+        profile = manager_with_data.generate_profile()
+
+        assert profile.total_rows == 2
+        assert profile.total_columns == 5
+        assert profile.source == "CryptoDataManager"
+
+        # Check profile file was created
+        assert (temp_storage / "premium_index_profile.json").exists()
+
+    def test_load_profile(self, manager_with_data):
+        """Test load_profile returns saved profile."""
+        # Generate first
+        original = manager_with_data.generate_profile()
+
+        # Load
+        loaded = manager_with_data.load_profile()
+
+        assert loaded is not None
+        assert loaded.total_rows == original.total_rows
+        assert loaded.source == original.source
+
+    def test_load_profile_not_exists(self, temp_storage):
+        """Test load_profile returns None when no profile exists."""
+        config = CryptoConfig(storage_path=temp_storage)
+        manager = CryptoDataManager(config)
+
+        result = manager.load_profile()
+        assert result is None
+
+    def test_generate_profile_empty_data(self, temp_storage):
+        """Test generate_profile handles empty data gracefully."""
+        config = CryptoConfig(storage_path=temp_storage)
+        manager = CryptoDataManager(config)
+
+        profile = manager.generate_profile()
+        assert profile.total_rows == 0
+        assert profile.total_columns == 0

@@ -12,6 +12,7 @@ from .backend import StorageBackend, StorageConfig
 from .data_profile import (
     ColumnProfile,
     DatasetProfile,
+    ProfileMixin,
     generate_profile,
     get_profile_path,
     load_profile,
@@ -50,6 +51,7 @@ __all__ = [
     "DatasetProfile",
     "FlatStorage",
     "HiveStorage",
+    "ProfileMixin",
     "StorageBackend",
     "StorageConfig",
     "create_storage",

@@ -40,7 +40,12 @@ import polars as pl
 import structlog
 import yaml
 
-from ml4t.data.storage.data_profile import generate_profile, save_profile
+from ml4t.data.storage.data_profile import (
+    DatasetProfile,
+    generate_profile,
+    load_profile,
+    save_profile,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -612,6 +617,88 @@ class FuturesDataManager:
                 )
 
         return pl.DataFrame(summaries)
+
+    def generate_profile(self, product: str) -> DatasetProfile:
+        """Generate a data profile for a specific product.
+
+        Creates column-level statistics for the product's OHLCV data.
+        Can be called on-demand after download to (re)generate the profile.
+
+        Args:
+            product: CME product symbol (e.g., "ES", "CL")
+
+        Returns:
+            DatasetProfile with column statistics
+
+        Example:
+            >>> manager = FuturesDataManager.from_config("config.yaml")
+            >>> profile = manager.generate_profile("ES")
+            >>> print(profile.summary())
+        """
+        df = self.load_ohlcv(product)
+
+        if df.is_empty():
+            logger.warning("No data found to profile", product=product)
+            return DatasetProfile(
+                total_rows=0,
+                total_columns=0,
+                columns=[],
+                generated_at="",
+                source="FuturesDataManager",
+            )
+
+        profile = generate_profile(
+            df,
+            source="FuturesDataManager",
+            timestamp_col="ts_event",
+            symbol_col="symbol",
+        )
+
+        # Save profile
+        profile_path = self._get_profile_path(product)
+        save_profile(profile, profile_path)
+        logger.info("Generated and saved profile", product=product, path=str(profile_path))
+
+        return profile
+
+    def load_profile(self, product: str) -> DatasetProfile | None:
+        """Load the existing data profile for a specific product.
+
+        Args:
+            product: CME product symbol (e.g., "ES", "CL")
+
+        Returns:
+            DatasetProfile if exists, None otherwise
+
+        Example:
+            >>> manager = FuturesDataManager.from_config("config.yaml")
+            >>> profile = manager.load_profile("ES")
+            >>> if profile:
+            ...     print(f"ES has {profile.total_rows} rows")
+        """
+        profile_path = self._get_profile_path(product)
+        return load_profile(profile_path)
+
+    def generate_all_profiles(self) -> dict[str, DatasetProfile]:
+        """Generate profiles for all downloaded products.
+
+        Returns:
+            Dictionary of product -> DatasetProfile
+
+        Example:
+            >>> manager = FuturesDataManager.from_config("config.yaml")
+            >>> profiles = manager.generate_all_profiles()
+            >>> for product, profile in profiles.items():
+            ...     print(f"{product}: {profile.total_rows} rows")
+        """
+        profiles = {}
+        for product in self.config.get_all_products():
+            try:
+                if self.load_ohlcv(product).height > 0:
+                    profiles[product] = self.generate_profile(product)
+            except FileNotFoundError:
+                continue
+        return profiles
 
 
 def download_futures_data(config_path: str = "configs/ml4t_futures.yaml"):

@@ -24,6 +24,12 @@ from ml4t.data.futures.continuous import (
     ContinuousContractBuilder,
     build_continuous_contract,
 )
+from ml4t.data.futures.continuous_downloader import (
+    ContinuousDownloadConfig,
+    ContinuousDownloader,
+    ContinuousDownloadProgress,
+    load_continuous_config,
+)
 from ml4t.data.futures.databento_parser import (
     STAT_TYPE_CLEARED_VOLUME,
     # Stat type constants
@@ -41,18 +47,6 @@ from ml4t.data.futures.databento_parser import (
     parse_databento,
     parse_databento_raw,
 )
-from ml4t.data.futures.continuous_downloader import (
-    ContinuousDownloadConfig,
-    ContinuousDownloader,
-    ContinuousDownloadProgress,
-    load_continuous_config,
-)
-from ml4t.data.futures.individual_downloader import (
-    IndividualDownloadConfig,
-    IndividualDownloader,
-    IndividualProductConfig,
-    load_individual_config,
-)
 from ml4t.data.futures.downloader import (
     DEFAULT_PRODUCTS,
     DefinitionsConfig,
@@ -63,6 +57,12 @@ from ml4t.data.futures.downloader import (
     FuturesDownloader,
     load_definitions_config,
     load_yaml_config,
+)
+from ml4t.data.futures.individual_downloader import (
+    IndividualDownloadConfig,
+    IndividualDownloader,
+    IndividualProductConfig,
+    load_individual_config,
 )
 from ml4t.data.futures.parser import parse_quandl_chris, parse_quandl_chris_raw
 from ml4t.data.futures.roll import (

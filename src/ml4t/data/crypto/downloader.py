@@ -37,7 +37,12 @@ import polars as pl
 import structlog
 import yaml
 
-from ml4t.data.storage.data_profile import generate_profile, get_profile_path, save_profile
+from ml4t.data.storage.data_profile import (
+    ProfileMixin,
+    generate_profile,
+    get_profile_path,
+    save_profile,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -75,7 +80,7 @@ class CryptoConfig:
         return categories
 
 
-class CryptoDataManager:
+class CryptoDataManager(ProfileMixin):
     """Manages crypto data download and storage for ML4T book.
 
     This class provides a simple interface for book readers to:
@@ -85,6 +90,10 @@ class CryptoDataManager:
     Data is stored as:
         {storage_path}/premium_index.parquet
         {storage_path}/premium_index/symbol={SYMBOL}/data.parquet
+
+    Inherits from ProfileMixin to provide:
+        - generate_profile(): Generate column-level statistics
+        - load_profile(): Load existing profile
     """
 
     def __init__(self, config: CryptoConfig):
@@ -320,6 +329,19 @@ class CryptoDataManager:
             )
             .sort("symbol")
         )
+
+    # ProfileMixin implementation
+    def _get_profile_data(self) -> pl.DataFrame:
+        """Load data for profiling."""
+        return self.load_premium_index()
+
+    def _get_profile_data_path(self) -> Path:
+        """Get path to the main data file."""
+        return self.config.storage_path / "premium_index.parquet"
+
+    def _get_profile_source_name(self) -> str:
+        """Get source name for profile metadata."""
+        return "CryptoDataManager"
 
 
 def main():

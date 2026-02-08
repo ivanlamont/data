@@ -1,7 +1,6 @@
 """Tests for data_profile module."""
 
 from datetime import datetime
-from pathlib import Path
 
 import polars as pl
 import pytest
@@ -9,6 +8,7 @@ import pytest
 from ml4t.data.storage.data_profile import (
     ColumnProfile,
     DatasetProfile,
+    ProfileMixin,
     generate_profile,
     get_profile_path,
     load_profile,
@@ -222,3 +222,101 @@ class TestGetProfilePath:
         profile_path = get_profile_path(data_dir)
         assert profile_path.name == "_profile.json"
         assert profile_path.parent == data_dir
+
+
+class TestProfileMixin:
+    """Tests for ProfileMixin class."""
+
+    def test_mixin_generate_profile(self, sample_ohlcv_df, tmp_path):
+        """Test mixin provides generate_profile method."""
+
+        class TestManager(ProfileMixin):
+            def __init__(self, df, data_path):
+                self._df = df
+                self._data_path = data_path
+
+            def _get_profile_data(self):
+                return self._df
+
+            def _get_profile_data_path(self):
+                return self._data_path
+
+            def _get_profile_source_name(self):
+                return "TestManager"
+
+        data_path = tmp_path / "data.parquet"
+        manager = TestManager(sample_ohlcv_df, data_path)
+
+        profile = manager.generate_profile()
+
+        assert profile.total_rows == 5
+        assert profile.source == "TestManager"
+        assert len(profile.columns) == 7
+
+        # Check profile was saved
+        profile_path = tmp_path / "data_profile.json"
+        assert profile_path.exists()
+
+    def test_mixin_load_profile(self, sample_ohlcv_df, tmp_path):
+        """Test mixin provides load_profile method."""
+
+        class TestManager(ProfileMixin):
+            def __init__(self, df, data_path):
+                self._df = df
+                self._data_path = data_path
+
+            def _get_profile_data(self):
+                return self._df
+
+            def _get_profile_data_path(self):
+                return self._data_path
+
+            def _get_profile_source_name(self):
+                return "TestManager"
+
+        data_path = tmp_path / "data.parquet"
+        manager = TestManager(sample_ohlcv_df, data_path)
+
+        # Generate profile first
+        original = manager.generate_profile()
+
+        # Load it back
+        loaded = manager.load_profile()
+
+        assert loaded is not None
+        assert loaded.total_rows == original.total_rows
+        assert loaded.source == original.source
+
+    def test_mixin_empty_data(self, tmp_path):
+        """Test mixin handles empty data gracefully."""
+
+        class TestManager(ProfileMixin):
+            def _get_profile_data(self):
+                return pl.DataFrame()
+
+            def _get_profile_data_path(self):
+                return tmp_path / "empty.parquet"
+
+            def _get_profile_source_name(self):
+                return "TestManager"
+
+        manager = TestManager()
+        profile = manager.generate_profile()
+
+        assert profile.total_rows == 0
+        assert profile.total_columns == 0
+
+    def test_mixin_load_nonexistent_profile(self, tmp_path):
+        """Test mixin returns None for nonexistent profile."""
+
+        class TestManager(ProfileMixin):
+            def _get_profile_data(self):
+                return pl.DataFrame()
+
+            def _get_profile_data_path(self):
+                return tmp_path / "nonexistent.parquet"
+
+        manager = TestManager()
+        result = manager.load_profile()
+
+        assert result is None

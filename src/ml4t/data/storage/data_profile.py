@@ -241,3 +241,85 @@ def get_profile_path(data_path: Path) -> Path:
         return data_path / "_profile.json"
     else:
         return data_path.with_name(data_path.stem + "_profile.json")
+
+
+class ProfileMixin:
+    """Mixin providing data profiling capabilities for data managers.
+
+    Subclasses must implement:
+        - _get_profile_data() -> pl.DataFrame: Load data for profiling
+        - _get_profile_data_path() -> Path: Path to the main data file
+        - _get_profile_source_name() -> str: Source identifier for profile
+
+    Example:
+        class MyDataManager(ProfileMixin):
+            def _get_profile_data(self) -> pl.DataFrame:
+                return self.load_all()
+
+            def _get_profile_data_path(self) -> Path:
+                return self.config.storage_path / "data.parquet"
+
+            def _get_profile_source_name(self) -> str:
+                return "MyDataManager"
+
+            # Now generate_profile() and load_profile() are available
+    """
+
+    def _get_profile_data(self) -> pl.DataFrame:
+        """Load data for profiling. Subclasses must override."""
+        raise NotImplementedError("Subclasses must implement _get_profile_data()")
+
+    def _get_profile_data_path(self) -> Path:
+        """Get path to the main data file. Subclasses must override."""
+        raise NotImplementedError("Subclasses must implement _get_profile_data_path()")
+
+    def _get_profile_source_name(self) -> str:
+        """Get source name for profile metadata. Subclasses must override."""
+        return self.__class__.__name__
+
+    def generate_profile(self) -> DatasetProfile:
+        """Generate a data profile for the dataset.
+
+        Creates column-level statistics for the data.
+        Can be called on-demand after download to (re)generate the profile.
+
+        Returns:
+            DatasetProfile with column statistics
+
+        Example:
+            >>> manager = ETFDataManager.from_config("config.yaml")
+            >>> profile = manager.generate_profile()
+            >>> print(profile.summary())
+        """
+        df = self._get_profile_data()
+        source = self._get_profile_source_name()
+
+        if df.is_empty():
+            logger.warning("No data found to profile", source=source)
+            return DatasetProfile(
+                total_rows=0,
+                total_columns=0,
+                columns=[],
+                generated_at="",
+                source=source,
+            )
+
+        profile = generate_profile(df, source=source)
+
+        # Save profile
+        data_path = self._get_profile_data_path()
+        profile_path = get_profile_path(data_path)
+        save_profile(profile, profile_path)
+        logger.info("Generated and saved profile", path=str(profile_path))
+
+        return profile
+
+    def load_profile(self) -> DatasetProfile | None:
+        """Load the existing data profile.
+
+        Returns:
+            DatasetProfile if exists, None otherwise
+        """
+        data_path = self._get_profile_data_path()
+        profile_path = get_profile_path(data_path)
+        return load_profile(profile_path)
