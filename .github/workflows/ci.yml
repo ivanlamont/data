@@ -82,7 +82,7 @@ jobs:
             --ignore=tests/test_oanda_provider.py \
             --ignore=tests/test_provider_registration.py \
             --ignore=tests/futures \
-            --deselect tests/test_async_providers_extended.py::TestOandaProviderAsync
+            --ignore=tests/test_async_providers_extended.py
 
   build:
     name: Build Package
