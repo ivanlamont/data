@@ -153,6 +153,20 @@ Repository = "https://github.com/stefan-jansen/ml4t-data"
 Issues = "https://github.com/stefan-jansen/ml4t-data/issues"
 Changelog = "https://github.com/stefan-jansen/ml4t-data/blob/main/CHANGELOG.md"
 
+[dependency-groups]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-xdist>=3.3.0",
+    "pytest-timeout>=2.1.0",
+    "pytest-asyncio>=0.21.0",
+    "hypothesis>=6.80.0",
+    "ruff>=0.8.0",
+    "ty",
+    "pre-commit>=3.3.0",
+    "twine>=6.0.0",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
@@ -191,6 +205,7 @@ timeout = 300
 line-length = 100
 target-version = "py311"
 fix = true
+exclude = ["_version.py"]
 
 [tool.ruff.lint]
 select = [
@@ -216,6 +231,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ARG001", "ARG002", "ARG005", "B017", "F821", "SIM117"]  # Test patterns
+"src/ml4t/data/futures/continuous_downloader.py" = ["ARG002"]  # Public API placeholder
 "src/ml4t/data/providers/base.py" = ["ARG002"]  # Template method pattern
 "src/ml4t/data/validation/*.py" = ["ARG002"]  # Validator pattern
 "src/ml4t/data/provider_updater.py" = ["ARG002"]  # Template pattern
@@ -347,6 +363,14 @@ module = [
     "ml4t.data.storage.flat",
 ]
 ignore_errors = true
+
+[tool.ty.environment]
+python-version = "3.11"
+root = ["src"]
+
+[tool.ty.src]
+include = ["src"]
+exclude = ["tests", "examples", "benchmarks"]
 
 [tool.coverage.run]
 source = ["src/ml4t/data"]

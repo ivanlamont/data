@@ -19,25 +19,29 @@ from ml4t.data.storage.data_profile import (
 @pytest.fixture
 def sample_ohlcv_df():
     """Create a sample OHLCV DataFrame for testing."""
-    return pl.DataFrame({
-        "timestamp": [datetime(2025, 1, i) for i in range(1, 6)],
-        "symbol": ["SPY"] * 5,
-        "open": [100.0, 101.0, 102.0, 103.0, 104.0],
-        "high": [101.0, 102.0, 103.0, 104.0, 105.0],
-        "low": [99.0, 100.0, 101.0, 102.0, 103.0],
-        "close": [100.5, 101.5, 102.5, 103.5, 104.5],
-        "volume": [1000, 2000, 3000, 4000, 5000],
-    })
+    return pl.DataFrame(
+        {
+            "timestamp": [datetime(2025, 1, i) for i in range(1, 6)],
+            "symbol": ["SPY"] * 5,
+            "open": [100.0, 101.0, 102.0, 103.0, 104.0],
+            "high": [101.0, 102.0, 103.0, 104.0, 105.0],
+            "low": [99.0, 100.0, 101.0, 102.0, 103.0],
+            "close": [100.5, 101.5, 102.5, 103.5, 104.5],
+            "volume": [1000, 2000, 3000, 4000, 5000],
+        }
+    )
 
 
 @pytest.fixture
 def sample_df_with_nulls():
     """Create a sample DataFrame with null values."""
-    return pl.DataFrame({
-        "timestamp": [datetime(2025, 1, i) for i in range(1, 6)],
-        "symbol": ["SPY", "SPY", None, "QQQ", "QQQ"],
-        "value": [100.0, None, 102.0, None, 104.0],
-    })
+    return pl.DataFrame(
+        {
+            "timestamp": [datetime(2025, 1, i) for i in range(1, 6)],
+            "symbol": ["SPY", "SPY", None, "QQQ", "QQQ"],
+            "value": [100.0, None, 102.0, None, 104.0],
+        }
+    )
 
 
 class TestColumnProfile:

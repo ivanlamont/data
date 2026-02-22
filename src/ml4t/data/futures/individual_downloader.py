@@ -348,7 +348,10 @@ class IndividualDownloader:
                 path=str(output_path),
             )
 
-            return df.height, f"Downloaded {product}: {df.height:,} rows, {df['symbol'].n_unique()} contracts"
+            return (
+                df.height,
+                f"Downloaded {product}: {df.height:,} rows, {df['symbol'].n_unique()} contracts",
+            )
 
         except BentoClientError as e:
             error_msg = str(e)

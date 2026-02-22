@@ -492,10 +492,7 @@ class ContinuousDownloader:
 
         # Execute in parallel
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = {
-                executor.submit(download_product_safe, p): p
-                for p in products_needing_work
-            }
+            futures = {executor.submit(download_product_safe, p): p for p in products_needing_work}
 
             completed = 0
             for future in as_completed(futures):

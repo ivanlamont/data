@@ -55,7 +55,9 @@ class VolumeBasedRoll(RollStrategy):
         self.min_days_between_rolls = min_days_between_rolls
 
     def identify_rolls(
-        self, data: pl.DataFrame, contract_spec: ContractSpec | None = None  # noqa: ARG002
+        self,
+        data: pl.DataFrame,
+        contract_spec: ContractSpec | None = None,  # noqa: ARG002
     ) -> list[date]:
         """
         Identify roll dates based on volume crossover.
@@ -156,7 +158,9 @@ class OpenInterestBasedRoll(RollStrategy):
         self.lookback_days = lookback_days
 
     def identify_rolls(
-        self, data: pl.DataFrame, contract_spec: ContractSpec | None = None  # noqa: ARG002
+        self,
+        data: pl.DataFrame,
+        contract_spec: ContractSpec | None = None,  # noqa: ARG002
     ) -> list[date]:
         """
         Identify roll dates based on open interest crossover.
@@ -239,7 +243,9 @@ class TimeBasedRoll(RollStrategy):
         self.use_business_days = use_business_days
 
     def identify_rolls(
-        self, data: pl.DataFrame, contract_spec: ContractSpec | None = None  # noqa: ARG002
+        self,
+        data: pl.DataFrame,
+        contract_spec: ContractSpec | None = None,  # noqa: ARG002
     ) -> list[date]:
         """
         Identify roll dates based on expiration calendar.
@@ -453,7 +459,9 @@ class CalendarRoll(RollStrategy):
         self.rank = rank
 
     def identify_rolls(
-        self, data: pl.DataFrame, contract_spec: ContractSpec | None = None  # noqa: ARG002
+        self,
+        data: pl.DataFrame,
+        contract_spec: ContractSpec | None = None,  # noqa: ARG002
     ) -> list[date]:
         """
         Identify roll dates based on expiration calendar.
@@ -540,7 +548,9 @@ class HighestVolumeRoll(RollStrategy):
         self.min_volume = min_volume
 
     def identify_rolls(
-        self, data: pl.DataFrame, contract_spec: ContractSpec | None = None  # noqa: ARG002
+        self,
+        data: pl.DataFrame,
+        contract_spec: ContractSpec | None = None,  # noqa: ARG002
     ) -> list[date]:
         """
         Identify roll dates based on volume ranking.
@@ -625,7 +635,9 @@ class HighestOpenInterestRoll(RollStrategy):
         self.min_oi = min_oi
 
     def identify_rolls(
-        self, data: pl.DataFrame, contract_spec: ContractSpec | None = None  # noqa: ARG002
+        self,
+        data: pl.DataFrame,
+        contract_spec: ContractSpec | None = None,  # noqa: ARG002
     ) -> list[date]:
         """
         Identify roll dates based on open interest ranking.
