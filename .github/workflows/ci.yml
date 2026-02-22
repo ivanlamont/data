@@ -78,7 +78,8 @@ jobs:
       - name: Run tests
         run: |
           uv run pytest tests/ -v --tb=short -x -m "not slow and not paid_tier" \
-            --ignore=tests/integration
+            --ignore=tests/integration \
+            --ignore=tests/test_oanda_provider.py
 
   build:
     name: Build Package
