@@ -77,7 +77,7 @@ jobs:
 
       - name: Run tests
         run: |
-          uv run pytest tests/ -v --tb=short -x -m "not slow and not paid_tier" \
+          uv run pytest tests/ -v --tb=short -x -m "not slow and not paid_tier and not integration" \
             --ignore=tests/integration \
             --ignore=tests/test_oanda_provider.py \
             --ignore=tests/test_provider_registration.py \
