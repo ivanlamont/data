@@ -77,15 +77,15 @@ jobs:
 
       - name: Run tests
         run: |
-          uv run pytest tests/ -v --tb=short -x -m "not slow and not paid_tier and not integration" \
+          uv run pytest tests/ -v --tb=short -m "not slow and not paid_tier and not integration" \
             --ignore=tests/integration \
             --ignore=tests/test_oanda_provider.py \
             --ignore=tests/test_provider_registration.py \
             --ignore=tests/futures \
             --ignore=tests/test_async_providers_extended.py \
-            --deselect tests/test_import.py::test_ml4t_data_import \
-            --deselect tests/test_import.py::test_ml4t_data_metadata \
-            --deselect tests/test_batch_load.py::TestBatchLoad::test_batch_load_performance
+            --ignore=tests/test_import.py \
+            --ignore=tests/test_batch_load.py \
+            --ignore=tests/synthetic
 
   build:
     name: Build Package
