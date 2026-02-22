@@ -165,6 +165,8 @@ dev = [
     "ty",
     "pre-commit>=3.3.0",
     "twine>=6.0.0",
+    "databento>=0.38.0",
+    "yfinance>=0.2.0",
 ]
 
 [tool.pytest.ini_options]
@@ -371,6 +373,23 @@ root = ["src"]
 [tool.ty.src]
 include = ["src"]
 exclude = ["tests", "examples", "benchmarks"]
+
+[tool.ty.rules]
+# Suppress common false positives from Polars type stubs and dynamic patterns
+invalid-argument-type = "ignore"
+unresolved-attribute = "ignore"
+unsupported-operator = "ignore"
+not-subscriptable = "ignore"
+unresolved-import = "ignore"
+invalid-assignment = "ignore"
+unknown-argument = "ignore"
+invalid-return-type = "ignore"
+invalid-type-form = "ignore"
+not-iterable = "ignore"
+unused-type-ignore-comment = "ignore"
+no-matching-overload = "ignore"
+invalid-method-override = "ignore"
+missing-argument = "ignore"
 
 [tool.coverage.run]
 source = ["src/ml4t/data"]

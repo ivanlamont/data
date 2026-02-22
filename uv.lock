@@ -1634,6 +1634,7 @@ yahoo = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "databento" },
     { name = "hypothesis" },
     { name = "pre-commit" },
     { name = "pytest" },
@@ -1644,6 +1645,7 @@ dev = [
     { name = "ruff" },
     { name = "twine" },
     { name = "ty" },
+    { name = "yfinance" },
 ]
 
 [package.metadata]
@@ -1716,6 +1718,7 @@ provides-extras = ["all", "all-providers", "cot", "databento", "dev", "docs", "o
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "databento", specifier = ">=0.38.0" },
     { name = "hypothesis", specifier = ">=6.80.0" },
     { name = "pre-commit", specifier = ">=3.3.0" },
     { name = "pytest", specifier = ">=7.4.0" },
@@ -1726,6 +1729,7 @@ dev = [
     { name = "ruff", specifier = ">=0.8.0" },
     { name = "twine", specifier = ">=6.0.0" },
     { name = "ty" },
+    { name = "yfinance", specifier = ">=0.2.0" },
 ]
 
 [[package]]
