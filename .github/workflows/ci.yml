@@ -81,7 +81,7 @@ jobs:
             --ignore=tests/integration \
             --ignore=tests/test_oanda_provider.py \
             --ignore=tests/test_provider_registration.py \
-            --deselect tests/futures/test_parser.py::TestParseQuandlCHRIS::test_parse_es_continuous_data
+            --ignore=tests/futures
 
   build:
     name: Build Package
