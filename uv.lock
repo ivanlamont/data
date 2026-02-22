@@ -1645,6 +1645,7 @@ dev = [
     { name = "ruff" },
     { name = "twine" },
     { name = "ty" },
+    { name = "xlsxwriter" },
     { name = "yfinance" },
 ]
 
@@ -1729,6 +1730,7 @@ dev = [
     { name = "ruff", specifier = ">=0.8.0" },
     { name = "twine", specifier = ">=6.0.0" },
     { name = "ty" },
+    { name = "xlsxwriter", specifier = ">=3.1.0" },
     { name = "yfinance", specifier = ">=0.2.0" },
 ]
 
