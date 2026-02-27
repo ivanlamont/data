@@ -1,0 +1,56 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ml4t}
+      POSTGRES_USER: ${POSTGRES_USER:-ml4t}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ml4t} -d ${POSTGRES_DB:-ml4t}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5490:5432"
+
+  seeder:
+    build: ./seeder
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-ml4t}
+      POSTGRES_USER: ${POSTGRES_USER:-ml4t}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POLYGON_ACCESS_KEY_ID: ${POLYGON_ACCESS_KEY_ID:-}
+      POLYGON_SECRET_ACCESS_KEY: ${POLYGON_SECRET_ACCESS_KEY:-}
+      POLYGON_S3_ENDPOINT_URL: ${POLYGON_S3_ENDPOINT_URL:-https://files.polygon.io}
+      POLYGON_S3_BUCKET_NAME: ${POLYGON_S3_BUCKET_NAME:-flatfiles}
+      POLYGON_API_BASE_URL: ${POLYGON_API_BASE_URL:-https://api.massive.com}
+      POLYGON_API_KEY: ${POLYGON_API_KEY:-}
+      SEED_START_DATE: ${SEED_START_DATE:-2023-01-01}
+      SEED_OPTIONS_DAYS: ${SEED_OPTIONS_DAYS:-5}
+      SEED_UNIVERSE: ${SEED_UNIVERSE:-SP500}
+      SEED_SYMBOLS: ${SEED_SYMBOLS:-}
+    restart: on-failure
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      ML4T_STORAGE_PATH: /data
+    volumes:
+      - appdata:/data
+
+volumes:
+  pgdata:
+  appdata:
