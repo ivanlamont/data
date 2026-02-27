@@ -47,6 +47,8 @@ SEED_OPTIONS_DAYS = int(os.environ.get("SEED_OPTIONS_DAYS", 5))
 SEED_SYMBOLS_ENV = os.environ.get("SEED_SYMBOLS", "")
 # SP500 | RUSSELL2000 | BOTH  (default: SP500)
 SEED_UNIVERSE = os.environ.get("SEED_UNIVERSE", "SP500").upper()
+# How many days before equity_reference rows are considered stale (default: 1)
+EQUITY_REF_TTL_DAYS = int(os.environ.get("EQUITY_REF_TTL_DAYS", 1))
 
 
 # ── DB connection ─────────────────────────────────────────────────────────────
@@ -125,12 +127,63 @@ def get_symbols() -> list[str]:
         return _fetch_sp500()
 
 
+# ── Staleness checks ──────────────────────────────────────────────────────────
+
+def _equity_ref_stale_symbols(conn, symbols: list[str]) -> list[str]:
+    """
+    Return the subset of symbols that are missing from equity_reference or
+    whose updated_at is older than EQUITY_REF_TTL_DAYS.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT symbol
+            FROM   market_data.equity_reference
+            WHERE  symbol = ANY(%s)
+              AND  updated_at >= NOW() - INTERVAL '1 day' * %s
+            """,
+            (symbols, EQUITY_REF_TTL_DAYS),
+        )
+        fresh = {row[0] for row in cur.fetchall()}
+    stale = [s for s in symbols if s not in fresh]
+    return stale
+
+
+def _options_ref_covered_underlyings(conn, underlyings: set[str]) -> set[str]:
+    """
+    Return the subset of underlyings that already have at least one
+    non-expired contract in options_reference.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT DISTINCT underlying
+            FROM   market_data.options_reference
+            WHERE  underlying = ANY(%s)
+              AND  expiry >= CURRENT_DATE
+            """,
+            (list(underlyings),),
+        )
+        return {row[0] for row in cur.fetchall()}
+
+
 # ── Equity reference ──────────────────────────────────────────────────────────
 
 def seed_equity_reference(conn, symbols: list[str]) -> None:
-    log.info("Seeding equity_reference for %d symbols…", len(symbols))
+    stale = _equity_ref_stale_symbols(conn, symbols)
+    if not stale:
+        log.info("equity_reference: all %d symbols are fresh (TTL %d day(s)); skipping.", len(symbols), EQUITY_REF_TTL_DAYS)
+        return
+    if len(stale) < len(symbols):
+        log.info(
+            "equity_reference: %d/%d symbols are stale or missing; fetching those only.",
+            len(stale), len(symbols),
+        )
+    else:
+        log.info("equity_reference: seeding all %d symbols…", len(symbols))
+
     rows = []
-    for i, sym in enumerate(symbols, 1):
+    for i, sym in enumerate(stale, 1):
         try:
             info = yf.Ticker(sym).info
             rows.append((
@@ -144,7 +197,7 @@ def seed_equity_reference(conn, symbols: list[str]) -> None:
                 info.get("sharesOutstanding"),
             ))
             if i % 50 == 0:
-                log.info("  equity_reference: %d/%d", i, len(symbols))
+                log.info("  equity_reference: %d/%d", i, len(stale))
         except Exception as exc:
             log.warning("  skipping %s: %s", sym, exc)
 
@@ -338,7 +391,7 @@ def _iter_options_contracts(underlying: str) -> list[dict]:
     return results
 
 
-def _seed_options_via_api(conn, sp500_set: set[str], trade_date: date) -> None:
+def _seed_options_via_api(conn, universe: set[str], trade_date: date) -> None:
     """
     Fallback: use the Massive (/v3/reference/options/contracts) REST API,
     throttled to 5 req/min, for the most recent trade date only.
@@ -350,16 +403,24 @@ def _seed_options_via_api(conn, sp500_set: set[str], trade_date: date) -> None:
         log.warning("POLYGON_API_KEY not set; cannot use REST API fallback.")
         return
 
-    log.info(
-        "API fallback: 
-          from %s for %s…",
-        POLYGON_API_BASE_URL, trade_date,
-    )
+    already_covered = _options_ref_covered_underlyings(conn, universe)
+    symbols_to_fetch = universe - already_covered
+    if not symbols_to_fetch:
+        log.info("options_reference: all %d underlyings already have active contracts; skipping API fetch.", len(universe))
+        return
+    if already_covered:
+        log.info(
+            "options_reference: %d/%d underlyings already covered; fetching %d remaining via API…",
+            len(already_covered), len(universe), len(symbols_to_fetch),
+        )
+    else:
+        log.info("API fallback: fetching options contracts from %s for %s…", POLYGON_API_BASE_URL, trade_date)
+
     ref_rows: list[tuple] = []
     pricing_rows: list[tuple] = []
     ts = datetime(trade_date.year, trade_date.month, trade_date.day)
 
-    for i, sym in enumerate(sorted(sp500_set), 1):
+    for i, sym in enumerate(sorted(symbols_to_fetch), 1):
         try:
             contracts = _iter_options_contracts(sym)
             for r in contracts:
@@ -386,7 +447,7 @@ def _seed_options_via_api(conn, sp500_set: set[str], trade_date: date) -> None:
             if i % 25 == 0:
                 log.info(
                     "  API fallback: %d/%d symbols, %d contracts so far",
-                    i, len(sp500_set), len(ref_rows),
+                    i, len(symbols_to_fetch), len(ref_rows),
                 )
         except Exception as exc:
             log.warning("  API fallback skipping %s: %s", sym, exc)
@@ -426,10 +487,25 @@ def _upsert_options(conn, ref_rows: list[tuple], pricing_rows: list[tuple]) -> N
         log.info("options_pricing: inserted %d rows.", len(pricing_rows))
 
 
-def seed_options(conn, sp500_set: set[str]) -> None:
+def seed_options(conn, universe: set[str]) -> None:
     if not POLYGON_ACCESS_KEY_ID or not POLYGON_SECRET_ACCESS_KEY:
         log.warning("POLYGON_ACCESS_KEY_ID / POLYGON_SECRET_ACCESS_KEY not set; skipping options seeding.")
         return
+
+    # Skip underlyings that already have active (non-expired) contracts
+    already_covered = _options_ref_covered_underlyings(conn, universe)
+    underlyings_to_load = universe - already_covered
+    if not underlyings_to_load:
+        log.info(
+            "options_reference: all %d underlyings already have active contracts; skipping flat-file download.",
+            len(universe),
+        )
+        return
+    if already_covered:
+        log.info(
+            "options_reference: %d/%d underlyings already covered; loading %d remaining.",
+            len(already_covered), len(universe), len(underlyings_to_load),
+        )
 
     s3 = _polygon_s3_client()
     trading_days = _recent_trading_days(SEED_OPTIONS_DAYS)
@@ -458,7 +534,7 @@ def seed_options(conn, sp500_set: set[str]) -> None:
             log.warning("  could not download %s: %s", key, exc)
             continue
 
-        day_ref, day_pricing = _parse_flat_file_rows(compressed, day, sp500_set)
+        day_ref, day_pricing = _parse_flat_file_rows(compressed, day, underlyings_to_load)
         ref_rows.extend(day_ref)
         pricing_rows.extend(day_pricing)
         log.info("  %s: accumulated %d contracts", day, len(ref_rows))
@@ -466,7 +542,7 @@ def seed_options(conn, sp500_set: set[str]) -> None:
     if flat_file_forbidden:
         # Fall back to REST API for the single most recent trading day only
         most_recent = trading_days[0]
-        _seed_options_via_api(conn, sp500_set, most_recent)
+        _seed_options_via_api(conn, underlyings_to_load, most_recent)
     else:
         _upsert_options(conn, ref_rows, pricing_rows)
 
